@@ -7,18 +7,13 @@ import os
 from html import unescape
 from datetime import datetime
 
-# --- URLs ---
 LOGIN_URL = "https://start.count-it.eu/nl/account/login"
 DASHBOARD_URL = "https://start.count-it.eu/nl/dashboard/?loadblock=supplierturnoveradmin&uid=2&relative=1"
 BASE_URL = "https://start.count-it.eu/nl/financial/allperiodssupplier"
-
-# --- Temp file path ---
 PDF_FILE = "/config/countit_report.pdf"
 
-# ---------- Utility helpers ----------
 def b64(s: str) -> str:
     return base64.b64encode(s.encode()).decode()
-
 
 def build_today_url(dept_id: int) -> str:
     today = datetime.now().strftime("%Y-%m-%d")
@@ -32,12 +27,9 @@ def build_today_url(dept_id: int) -> str:
     }
     return f"{BASE_URL}?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
 
-
 def login_session(username, password) -> requests.Session:
-    """Perform login and return authenticated session."""
     session = requests.Session()
     session.get(LOGIN_URL)
-
     form_data = {
         "form_name": "forms_form_100",
         "form_companyid": "0_0",
@@ -48,24 +40,18 @@ def login_session(username, password) -> requests.Session:
         "forms_form_100_2FACodeRemember": "",
         "forms_form_100_2FACodeRememberAlways": "",
     }
-
     resp = session.post(LOGIN_URL, data=form_data, timeout=30)
     if resp.status_code != 200:
         raise RuntimeError(f"Login failed ({resp.status_code})")
-
     return session
 
-
-# ---------- Dashboard scraping ----------
 def fetch_sales(username=None, password=None) -> dict:
-    """Scrape the dashboard for daily/monthly/yearly sales and customer count."""
     session = login_session(username, password)
     dash = session.get(DASHBOARD_URL, timeout=30)
     if dash.status_code != 200:
         raise RuntimeError(f"Dashboard request failed ({dash.status_code})")
 
     html = unescape(dash.text)
-
     euro_values = re.findall(r"€\s*([\d\.,]+)", html)
     cijfers = []
     for v in euro_values:
@@ -81,22 +67,9 @@ def fetch_sales(username=None, password=None) -> dict:
         cijfers.append(0.0)
 
     dag, maand, week, jaar = cijfers[:4]
+    return {"day": dag, "month": maand, "week": week, "year": jaar, "customers": klanten}
 
-    return {
-        "day": float(dag),
-        "month": float(maand),
-        "week": float(week),
-        "year": float(jaar),
-        "customers": int(klanten),
-    }
-
-
-# ---------- PDF scraping ----------
 def fetch_products(username=None, password=None, departments=None) -> list[str]:
-    """
-    Download PDFs for each department (from config) and extract product names + sold count.
-    `departments` should be a dict like {'Antwerpen': 111, 'Mol': 149}
-    """
     if not departments:
         print("No departments configured")
         return []
@@ -115,10 +88,16 @@ def fetch_products(username=None, password=None, departments=None) -> list[str]:
         with open(PDF_FILE, "wb") as f:
             f.write(resp.content)
 
+        debug_path = f"/config/countit_debug_{city}.pdf"
+        with open(debug_path, "wb") as debug_file:
+            debug_file.write(resp.content)
+        print(f"Saved debug PDF for {city}: {len(resp.content)} bytes → {debug_path}")
+
+
         try:
             with pdfplumber.open(PDF_FILE) as pdf:
                 for page in pdf.pages:
-                    for table in page.extract_tables():
+                    for table in page.extract_tables() or []:
                         if not table:
                             continue
                         header = [h.strip().lower() for h in table[0] if h]
@@ -126,29 +105,18 @@ def fetch_products(username=None, password=None, departments=None) -> list[str]:
                             for row in table[1:]:
                                 if not row or not row[0]:
                                     continue
-
-                                # Clean product name (remove serial numbers etc.)
-                                name = re.sub(
-                                    r"^\s*\d+\s*-\s*(?:[A-Z]\s*-\s*)?", "", row[0]
-                                ).strip()
-
-                                # Try to detect amount sold (# column)
+                                name = re.sub(r"^\s*\d+\s*-\s*(?:[A-Z]\s*-\s*)?", "", row[0]).strip()
                                 amount = "1"
                                 for cell in row:
                                     if cell and re.match(r"^\d+$", cell.strip()):
                                         amount = cell.strip()
                                         break
-
                                 if name:
                                     all_products.append(f"{prefix}{name} ×{amount}")
-
         except Exception as e:
             print(f"Error parsing PDF for {city}: {e}")
             continue
 
-    return all_products
-
-    # Clean up temporary file
     try:
         os.remove(PDF_FILE)
     except Exception:

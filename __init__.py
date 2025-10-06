@@ -34,6 +34,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                     departments=departments
                 )
 
+                if not departments:
+                    print("No departments configured")
+                    return []
+
+                print(f"Departments received: {departments}")
+
                 data = sales_data
                 data["products"] = products
                 data["last_successful_scrape"] = datetime.now().isoformat()
