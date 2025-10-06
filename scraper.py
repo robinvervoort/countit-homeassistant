@@ -15,17 +15,6 @@ BASE_URL = "https://start.count-it.eu/nl/financial/allperiodssupplier"
 # --- Temp file path ---
 PDF_FILE = "/config/countit_report.pdf"
 
-# --- Department list (city, id) ---
-DEPARTMENTS = [
-    ("Hasselt",   135),
-    ("Antwerpen", 111),
-    ("Kapellen",  112),
-    ("Lier",      119),
-    ("Mol",       149),
-    ("Turnhout",  136),
-]
-
-
 # ---------- Utility helpers ----------
 def b64(s: str) -> str:
     return base64.b64encode(s.encode()).decode()
@@ -103,17 +92,24 @@ def fetch_sales(username=None, password=None) -> dict:
 
 
 # ---------- PDF scraping ----------
-def fetch_products(username=None, password=None) -> list[str]:
-    """Download PDFs for each department and extract product names + sold count."""
+def fetch_products(username=None, password=None, departments=None) -> list[str]:
+    """
+    Download PDFs for each department (from config) and extract product names + sold count.
+    `departments` should be a dict like {'Antwerpen': 111, 'Mol': 149}
+    """
+    if not departments:
+        print("No departments configured")
+        return []
+
     session = login_session(username, password)
     all_products = []
 
-    for city, dept_id in DEPARTMENTS:
+    for city, dept_id in departments.items():
         prefix = city[:3].upper() + " "
         url = build_today_url(dept_id)
         resp = session.get(url, timeout=60)
         if resp.status_code != 200:
-            # Skip if department request failed
+            print(f"Skipping {city} (HTTP {resp.status_code})")
             continue
 
         with open(PDF_FILE, "wb") as f:
@@ -125,16 +121,18 @@ def fetch_products(username=None, password=None) -> list[str]:
                     for table in page.extract_tables():
                         if not table:
                             continue
-
                         header = [h.strip().lower() for h in table[0] if h]
                         if header and "product" in header[0]:
                             for row in table[1:]:
                                 if not row or not row[0]:
                                     continue
 
-                                name = re.sub(r"^\s*\d+\s*-\s*(?:[A-Z]\s*-\s*)?", "", row[0]).strip()
+                                # Clean product name (remove serial numbers etc.)
+                                name = re.sub(
+                                    r"^\s*\d+\s*-\s*(?:[A-Z]\s*-\s*)?", "", row[0]
+                                ).strip()
 
-                                # find amount sold (# column)
+                                # Try to detect amount sold (# column)
                                 amount = "1"
                                 for cell in row:
                                     if cell and re.match(r"^\d+$", cell.strip()):
@@ -147,6 +145,8 @@ def fetch_products(username=None, password=None) -> list[str]:
         except Exception as e:
             print(f"Error parsing PDF for {city}: {e}")
             continue
+
+    return all_products
 
     # Clean up temporary file
     try:

@@ -3,7 +3,6 @@ from datetime import timedelta, datetime
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 
@@ -18,8 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     _LOGGER.info("Setting up Count-It integration for user: %s", username)
 
-    # This import must stay inside to avoid blocking HA startup
-    from . import scraper
+    from . import scraper  # delay import to avoid blocking HA startup
 
     async def async_update_data():
         """Fetch new data from Count-It (runs in executor)."""
@@ -27,9 +25,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
         try:
             def blocking_fetch():
-                # Run the blocking scraper synchronously
+                # Run blocking I/O synchronously in an executor
                 sales_data = scraper.fetch_sales(username=username, password=password)
-                products = scraper.fetch_products(username=username, password=password)
+                departments = entry.data.get("departments", {})
+                products = scraper.fetch_products(
+                    username=username,
+                    password=password,
+                    departments=departments
+                )
 
                 data = sales_data
                 data["products"] = products
@@ -37,7 +40,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 return data
 
             data = await hass.async_add_executor_job(blocking_fetch)
-
             _LOGGER.info("Count-It data fetched successfully: %s", data)
             return data
 
@@ -67,7 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a Count-It entry."""
     _LOGGER.info("Unloading Count-It integration for %s", entry.data.get('username'))
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor", "binary_sensor"])
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unload_ok

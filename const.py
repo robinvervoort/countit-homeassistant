@@ -7,3 +7,8 @@ CONF_TIMEOUT = "timeout"
 
 DEFAULT_TIMEOUT = 60  # seconds
 DEFAULT_NAME = "Count-It"
+
+DEFAULT_DEPARTMENTS = {
+    "Store1": 111,
+    "Store2": 119,
+}
