@@ -1,0 +1,68 @@
+{
+  "config": {
+    "title": "Count-It",
+    "step": {
+      "user": {
+        "title": "Verbind met Count-It",
+        "description": "Voer je Count-It inloggegevens in om verkoop- en productgegevens op te halen.",
+        "data": {
+          "name": "Accountnaam",
+          "username": "E-mailadres",
+          "password": "Wachtwoord",
+          "timeout": "Time-out (seconden)"
+        }
+      }
+    },
+    "error": {
+      "missing_credentials": "Vul zowel e-mailadres als wachtwoord in.",
+      "cannot_connect": "Kan geen verbinding maken met Count-It. Controleer je inloggegevens of netwerkverbinding.",
+      "unknown": "Er is een onverwachte fout opgetreden. Controleer de logbestanden voor meer informatie."
+    },
+    "abort": {
+      "already_configured": "Dit Count-It account is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Count-It opties",
+        "description": "Pas de instellingen van dit Count-It account aan.",
+        "data": {
+          "name": "Accountnaam",
+          "timeout": "Time-out (seconden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "day": {
+        "name": "Dagverkoop"
+      },
+      "month": {
+        "name": "Maandverkoop"
+      },
+      "week": {
+        "name": "Weekverkoop"
+      },
+      "year": {
+        "name": "Jaarverkoop"
+      },
+      "customers": {
+        "name": "Klanten vandaag"
+      },
+      "products": {
+        "name": "Verkochte producten"
+      }
+    }
+  },
+  "binary_sensor": {
+    "scraper_status": {
+      "name": "Scraperstatus",
+      "state": {
+        "on": "Actief",
+        "off": "Inactief"
+      }
+    }
+  }
+}

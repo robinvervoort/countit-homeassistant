@@ -1,0 +1,68 @@
+{
+  "config": {
+    "title": "Count-It",
+    "step": {
+      "user": {
+        "title": "Connect to Count-It",
+        "description": "Enter your Count-It login details to fetch your sales data and product reports.",
+        "data": {
+          "name": "Account Name",
+          "username": "Email Address",
+          "password": "Password",
+          "timeout": "Timeout (seconds)"
+        }
+      }
+    },
+    "error": {
+      "missing_credentials": "Please enter both email and password.",
+      "cannot_connect": "Unable to connect to Count-It. Check your credentials or network connection.",
+      "unknown": "Unexpected error occurred. Check the logs for details."
+    },
+    "abort": {
+      "already_configured": "This Count-It account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Count-It Options",
+        "description": "Update configuration settings for this Count-It account.",
+        "data": {
+          "name": "Account Name",
+          "timeout": "Timeout (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "day": {
+        "name": "Daily Sales"
+      },
+      "month": {
+        "name": "Monthly Sales"
+      },
+      "week": {
+        "name": "Weekly Sales"
+      },
+      "year": {
+        "name": "Yearly Sales"
+      },
+      "customers": {
+        "name": "Customers Today"
+      },
+      "products": {
+        "name": "Products Sold"
+      }
+    }
+  },
+  "binary_sensor": {
+    "scraper_status": {
+      "name": "Scraper Status",
+      "state": {
+        "on": "Active",
+        "off": "Inactive"
+      }
+    }
+  }
+}

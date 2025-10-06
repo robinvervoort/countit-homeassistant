@@ -1,0 +1,7 @@
+{
+    "name": "Count-It Integration",
+    "content_in_root": false,
+    "render_readme": true,
+    "domains": ["sensor", "binary_sensor"],
+    "homeassistant": "2024.8.0"
+}
